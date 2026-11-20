@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Прицелы CS2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0f12; --panel:#15181d; --panel2:#1b1f26; --line:#262b34;
+    --text:#e8eaed; --muted:#8a919c; --accent:#f5a623; --accent2:#ffcc66;
+    --ok:#3ddc84; --danger:#ff5c5c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(1200px 500px at 80% -10%, rgba(245,166,35,.10), transparent 60%),
+      radial-gradient(800px 400px at -10% 110%, rgba(61,220,132,.06), transparent 60%),
+      var(--bg);
+    color:var(--text);font-family:"Rajdhani",system-ui,sans-serif;min-height:100vh}
+  .wrap{max-width:980px;margin:0 auto;padding:36px 20px 60px}
+  header{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:26px}
+  #openFile{margin-left:auto}
+  .logo{width:52px;height:52px;flex:none}
+  h1{margin:0;font-size:34px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+  h1 span{color:var(--accent)}
+  .sub{color:var(--muted);font-size:16px;margin-top:2px}
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  input{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);
+    border-radius:8px;padding:10px 12px;font-size:16px;outline:none;transition:border-color .15s}
+  input:focus{border-color:var(--accent)}
+  input.code{font-family:"JetBrains Mono",monospace;font-size:13px}
+  #search{flex:1;min-width:200px;height:44px}
+  button{font:inherit;font-weight:600;font-size:15px;cursor:pointer;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--text);padding:9px 14px;transition:all .15s;white-space:nowrap}
+  button:hover{border-color:var(--accent);color:var(--accent2)}
+  .primary{background:var(--accent);color:#14110a;border-color:var(--accent)}
+  .primary:hover{background:var(--accent2);color:#14110a}
+  .toolbar button,#openFile{display:inline-flex;align-items:center;justify-content:center;gap:8px;line-height:1;height:44px;padding-top:0;padding-bottom:0}
+  .toolbar button svg,#openFile svg{width:16px;height:16px;flex:none}
+  .num,.name{align-self:stretch;display:flex;align-items:center;cursor:grab}
+  .num{justify-content:center}
+  .row.editing .num{cursor:default}
+  .addbox{display:none;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:14px;margin-bottom:16px}
+  .addbox.open{display:flex}
+  .addbox input[name=name]{flex:1;min-width:180px}
+  .addbox input[name=code]{flex:2;min-width:260px}
+  .list{display:flex;flex-direction:column;gap:10px;position:relative}
+  .row{display:grid;grid-template-columns:40px minmax(140px,1fr) minmax(0,2.2fr) auto;align-items:center;gap:14px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+    transition:border-color .15s,transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .2s,background .2s}
+  .row:hover{border-color:#3a414d}
+  .num{color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:13px;text-align:center}
+  .name{font-size:19px;font-weight:600;overflow-wrap:anywhere}
+  .codebox{display:flex;align-items:center;gap:8px;background:#0f1216;border:1px solid var(--line);
+    border-radius:8px;padding:6px 6px 6px 12px;min-width:0}
+  .codebox code{font-family:"JetBrains Mono",monospace;font-size:13px;color:#cfd6df;flex:1;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .copy{padding:6px 12px;font-size:14px;background:var(--accent);color:#14110a;border-color:var(--accent)}
+  .copy:hover{background:var(--accent2);color:#14110a}
+  .codebox{cursor:text;transition:border-color .15s}
+  .codebox:hover{border-color:#3a414d}
+  .actions{display:flex;gap:6px}
+  .icon{padding:7px 9px;line-height:0}
+  .icon svg{width:16px;height:16px}
+  .icon.del:hover{border-color:var(--danger);color:var(--danger)}
+  .row.editing{grid-template-columns:40px 1fr 2.2fr;cursor:auto}
+  .row.dragging{position:relative;z-index:10;border-color:var(--accent);background:var(--panel2);
+    box-shadow:0 14px 34px rgba(0,0,0,.55),0 0 0 1px rgba(245,166,35,.35)}
+  body.dragging-active,body.dragging-active *{cursor:grabbing!important;user-select:none}
+  .row.editing input{width:100%}
+  .empty{text-align:center;color:var(--muted);padding:40px;border:1px dashed var(--line);border-radius:12px;font-size:18px}
+  .status{position:fixed;top:22px;right:22px;z-index:50;transform:translateY(-14px);opacity:0;
+    background:var(--panel2);border:1px solid var(--line);padding:10px 16px;border-radius:10px;font-size:15px;
+    transition:all .2s;pointer-events:none}
+  .status.show{opacity:1;transform:translateY(0)}
+  .status.ok{border-color:var(--ok);color:var(--ok)}
+  .note{color:var(--muted);font-size:14px;line-height:1.55;margin-top:18px;text-align:center;text-wrap:balance}
+  .note span{display:block}
+  @media (max-width:680px){
+    .row,.row.editing{grid-template-columns:1fr auto;grid-template-areas:"name actions" "code code"}
+    .num{display:none}
+    .name,.ename{grid-area:name}.codebox,.row.editing .codeedit{grid-area:code}.actions{grid-area:actions}
+    .row.editing{grid-template-columns:1fr;grid-template-areas:"name" "code"}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="logo" viewBox="0 0 52 52" fill="none">
+      <circle cx="26" cy="26" r="20" stroke="#f5a623" stroke-width="2.5" opacity=".9"/>
+      <path d="M26 2v14M26 36v14M2 26h14M36 26h14" stroke="#e8eaed" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="26" cy="26" r="2.5" fill="#3ddc84"/>
+    </svg>
+    <div>
+      <h1>Прицелы <span>CS2</span></h1>
+      <div class="sub" id="count"></div>
+    </div>
+    <button id="openFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7 9l5-5 5 5M5 20h14"/></svg>Открыть файл</button>
+    <input type="file" id="fileInput" accept=".html,.htm,.json,text/html,application/json" hidden>
+  </header>
+
+  <div class="toolbar">
+    <input id="search" placeholder="Поиск по названию или коду…" autocomplete="off">
+    <button class="primary" id="toggleAdd">+ Добавить прицел</button>
+    <button id="backup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Скачать</button>
+  </div>
+
+  <form class="addbox" id="addForm">
+    <input name="name" placeholder="Название (например, белый аим)" autocomplete="off">
+    <input name="code" class="code" placeholder="CSGO-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx" autocomplete="off">
+    <button class="primary" type="submit">Сохранить</button>
+  </form>
+
+  <div class="list" id="list"></div>
+  <div class="note" id="note"><span>Изменения в браузере сохраняются автоматически.</span><span>Рекомендация: сохранять файл после каждого обновления.</span></div>
+</div>
+<div class="status" id="status"></div>
+
+<script type="application/json" id="data">[]</script>
+<script>
+(function(){
+  // Чистая копия документа — делается до любого рендера
+  const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const DATA_RE = /(<script type="application\/json" id="data">)[\s\S]*?(<\/script>)/;
+
+  let items = [];
+  const LS_KEY = 'cs2-crosshairs-v2';
+  try { items = JSON.parse(document.getElementById('data').textContent) || []; } catch(e) { items = []; }
+  try { const saved = localStorage.getItem(LS_KEY); if(saved) items = JSON.parse(saved); } catch(e) {}
+
+  let editing = -1;
+  const $ = id => document.getElementById(id);
+
+  const ICONS = {
+    edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+    del:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+    ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>',
+    x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+  };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function word(n){ const a=n%10,b=n%100; if(a===1&&b!==11) return 'прицел'; if(a>=2&&a<=4&&(b<12||b>14)) return 'прицела'; return 'прицелов'; }
+
+  function render(){
+    const q = $('search').value.trim().toLowerCase();
+    $('count').textContent = items.length + ' ' + word(items.length) + ' в коллекции';
+    const list = $('list');
+    const shown = items.map((it,i)=>({it,i})).filter(({it}) => !q || it.name.toLowerCase().includes(q) || it.code.toLowerCase().includes(q));
+    if(!shown.length){
+      list.innerHTML = '<div class="empty">' + (items.length ? 'Ничего не найдено' : 'Пока пусто — добавь первый прицел') + '</div>';
+      return;
+    }
+    list.innerHTML = shown.map(({it,i}) => {
+      if(i === editing){
+        return `<div class="row editing" data-i="${i}">
+          <div class="num">${i+1}</div>
+          <input class="ename" value="${esc(it.name)}">
+          <input class="ecode code codeedit" value="${esc(it.code)}"></div>`;
+      }
+      return `<div class="row" data-i="${i}">
+        <div class="num">${i+1}</div>
+        <div class="name">${esc(it.name || 'Без названия')}</div>
+        <div class="codebox"><code>${esc(it.code)}</code>
+          <button class="copy" data-act="copy">Копировать</button></div>
+        <div class="actions">
+          <button class="icon" data-act="edit">${ICONS.edit}</button>
+          <button class="icon del" data-act="del">${ICONS.del}</button>
+        </div></div>`;
+    }).join('');
+  }
+
+  function toast(msg, ok){
+    const s = $('status'); s.textContent = msg; s.classList.toggle('ok', !!ok); s.classList.add('show');
+    clearTimeout(toast.t); toast.t = setTimeout(()=>s.classList.remove('show'), 2000);
+  }
+
+  // История для Ctrl+Z
+  const undoStack = [];
+  function snap(){ undoStack.push(JSON.stringify(items)); if(undoStack.length > 50) undoStack.shift(); }
+  function undo(){
+    if(!undoStack.length) return;
+    items = JSON.parse(undoStack.pop()); editing = -1;
+    render(); persist();
+  }
+  document.addEventListener('keydown', e => {
+    if(!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.code !== 'KeyZ') return;
+    if(e.target.closest && e.target.closest('input,textarea')) return; // в полях ввода работает обычная отмена текста
+    if(document.body.classList.contains('dragging-active')) return;
+    e.preventDefault(); undo();
+  });
+
+  function persist(){
+    try { localStorage.setItem(LS_KEY, JSON.stringify(items)); } catch(e) { toast('Не удалось сохранить в браузере'); }
+  }
+
+  async function copy(text){
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch(e){
+      try {
+        const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove();
+      } catch(_){}
+    }
+    if(ok) toast('Скопировано ✓', true);
+    else toast('Не получилось скопировать — выдели код вручную');
+  }
+
+  function startEdit(i, field){
+    editing = i; render();
+    const el = $('list').querySelector(field === 'code' ? '.ecode' : '.ename');
+    if(el){ el.focus(); const n = el.value.length; el.setSelectionRange(n, n); }
+  }
+
+  function endEdit(save){
+    if(editing === -1) return;
+    const i = editing, row = $('list').querySelector('.row.editing');
+    editing = -1;
+    if(save && row){
+      const name = row.querySelector('.ename').value.trim(), code = row.querySelector('.ecode').value.trim();
+      if(!code) toast('Код пустой — изменения отменены');
+      else if(name !== items[i].name || code !== items[i].code){ snap(); items[i] = {name, code}; persist(); toast('Сохранено'); }
+    }
+    render();
+  }
+
+  // Клик мимо редактируемой строки сохраняет изменения
+  let downInside = false;
+  document.addEventListener('pointerdown', e => {
+    const er = $('list').querySelector('.row.editing');
+    downInside = !!(er && er.contains(e.target));
+  }, true);
+  document.addEventListener('click', e => {
+    if(editing === -1 || downInside) return;
+    endEdit(true);
+    if(e.target.closest && e.target.closest('[data-act=del]')) e.stopPropagation();
+  }, true);
+
+  $('list').addEventListener('click', e => {
+    const row = e.target.closest('.row'); if(!row) return;
+    const i = +row.dataset.i;
+    const btn = e.target.closest('button[data-act]');
+    if(!btn){ if(e.target.closest('.codebox')) startEdit(i, 'code'); return; }
+    const act = btn.dataset.act;
+    if(act === 'copy') return copy(items[i].code);
+    if(act === 'edit'){ startEdit(i, 'name'); return; }
+    if(act === 'del'){
+      if(btn.dataset.confirm){ snap(); items.splice(i,1); render(); persist(); }
+      else { btn.dataset.confirm = '1'; btn.style.borderColor='var(--danger)'; btn.style.color='var(--danger)';
+        toast('Нажми ещё раз, чтобы удалить');
+        setTimeout(()=>{ delete btn.dataset.confirm; btn.style.borderColor=''; btn.style.color=''; }, 2500); }
+    }
+  });
+
+  $('list').addEventListener('keydown', e => {
+    if(!e.target.matches('.ename,.ecode')) return;
+    if(e.key === 'Enter') endEdit(true);
+    if(e.key === 'Escape') endEdit(false);
+  });
+
+  $('toggleAdd').addEventListener('click', () => {
+    const f = $('addForm'); f.classList.toggle('open');
+    if(f.classList.contains('open')) f.name.focus();
+  });
+
+  $('addForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const f = e.target, name = f.name.value.trim(), code = f.code.value.trim();
+    if(!code){ toast('Вставь код прицела'); f.code.focus(); return; }
+    snap(); items.push({name, code}); f.reset(); f.name.focus(); render(); persist(); toast('Прицел добавлен');
+  });
+
+  $('search').addEventListener('input', render);
+
+  $('backup').addEventListener('click', () => {
+    const json = JSON.stringify(items).replace(/</g,'\\u003c');
+    const html = PRISTINE.replace(DATA_RE, (m,a,b) => a + json + b);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([html], {type:'text/html'}));
+    a.download = 'Прицелы CS2.html'; document.body.appendChild(a); a.click(); a.remove();
+    toast('Копия скачана');
+  });
+
+  // Перетаскивание карточек с плавной анимацией
+  (function(){
+    const list = $('list');
+    const GAP = 10, EASE = 'cubic-bezier(.2,.8,.2,1)';
+    let d = null, settling = false, raf = 0;
+
+    list.addEventListener('pointerdown', e => {
+      if(e.button !== 0 || e.pointerType === 'touch' || settling) return;
+      if(!e.target.closest('.num,.name')) return;
+      if(editing !== -1 || $('search').value.trim()) return;
+      const row = e.target.closest('.row'); if(!row) return;
+      d = {row, from:+row.dataset.i, startPageY:e.pageY, clientY:e.clientY, active:false};
+    });
+
+    window.addEventListener('pointermove', e => {
+      if(!d) return;
+      d.clientY = e.clientY;
+      if(!d.active){
+        if(Math.abs(e.pageY - d.startPageY) < 5) return;
+        begin();
+      }
+      update();
+    });
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+    document.addEventListener('selectstart', e => { if(d && d.active) e.preventDefault(); });
+
+    function begin(){
+      d.rows = [...list.querySelectorAll('.row')];
+      d.tops = d.rows.map(r => r.offsetTop);
+      d.hs = d.rows.map(r => r.offsetHeight);
+      d.to = d.from; d.active = true;
+      d.startScroll = window.scrollY;
+      d.row.classList.add('dragging');
+      d.row.style.transition = 'box-shadow .2s,border-color .15s';
+      document.body.classList.add('dragging-active');
+      loop();
+    }
+
+    function update(){
+      const {rows,tops,hs,from} = d;
+      const dy = (d.clientY + window.scrollY) - d.startPageY;
+      d.row.style.transform = `translateY(${dy}px) scale(1.015)`;
+      const center = tops[from] + hs[from]/2 + dy;
+      let t = 0;
+      rows.forEach((r,j) => { if(j !== from && tops[j] + hs[j]/2 < center) t++; });
+      d.to = t;
+      const sh = hs[from] + GAP;
+      rows.forEach((r,j) => {
+        if(j === from) return;
+        let s = 0;
+        if(t > from && j > from && j <= t) s = -sh;
+        else if(t < from && j >= t && j < from) s = sh;
+        r.style.transform = s ? `translateY(${s}px)` : '';
+      });
+    }
+
+    function loop(){
+      if(!d || !d.active) return;
+      const y = d.clientY, edge = 70;
+      if(y < edge) window.scrollBy(0, -Math.ceil((edge - y) / 5));
+      else if(y > window.innerHeight - edge) window.scrollBy(0, Math.ceil((y - (window.innerHeight - edge)) / 5));
+      update();
+      raf = requestAnimationFrame(loop);
+    }
+
+    function finish(){
+      if(!d) return;
+      const s = d; d = null; cancelAnimationFrame(raf);
+      if(!s.active) return;
+      settling = true;
+      // после перетаскивания не считаем отпускание кнопки кликом
+      const block = ev => { ev.stopPropagation(); ev.preventDefault(); };
+      window.addEventListener('click', block, true);
+      setTimeout(() => window.removeEventListener('click', block, true), 60);
+      const {tops,hs,from,to} = s;
+      const targetTop = to > from ? tops[to] + hs[to] - hs[from] : tops[to];
+      s.row.classList.remove('dragging');
+      s.row.style.transition = `transform .24s ${EASE},box-shadow .2s`;
+      s.row.style.transform = `translateY(${targetTop - tops[from]}px)`;
+      setTimeout(() => {
+        document.body.classList.remove('dragging-active');
+        if(to !== from){
+          snap();
+          const [m] = items.splice(from, 1);
+          items.splice(to, 0, m);
+          persist();
+        }
+        render();
+        settling = false;
+      }, 250);
+    }
+  })();
+
+  // Открыть ранее скачанный файл со списком
+  $('openFile').addEventListener('click', () => $('fileInput').click());
+  $('fileInput').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if(!file) return;
+    let next;
+    try {
+      const text = await file.text();
+      const data = text.trim().startsWith('[')
+        ? JSON.parse(text)
+        : JSON.parse(new DOMParser().parseFromString(text, 'text/html').getElementById('data').textContent);
+      if(!Array.isArray(data)) throw new Error('bad');
+      next = data.filter(x => x && x.code).map(x => ({name: String(x.name || ''), code: String(x.code)}));
+    } catch(err){ toast('Не удалось открыть файл'); return; }
+    if(items.length && JSON.stringify(items) !== JSON.stringify(next) &&
+       !confirm('Заменить текущий список прицелов списком из файла?')) return;
+    snap(); items = next; editing = -1; $('search').value = '';
+    render(); persist(); toast('Открыто: ' + next.length + ' ' + word(next.length), true);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
